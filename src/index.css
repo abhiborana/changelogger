@@ -1,0 +1,75 @@
+@import "tailwindcss";
+@import "@fontsource/geist/400.css";
+@import "@fontsource/geist/500.css";
+@import "@fontsource/geist/600.css";
+@import "@fontsource/geist/700.css";
+
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: #0c0c0e;
+  --color-foreground: #ececef;
+  --color-card: #141418;
+  --color-card-foreground: #ececef;
+  --color-muted: #1c1c22;
+  --color-muted-foreground: #9a9aa8;
+  --color-border: #2a2a34;
+  --color-accent: #1e1e26;
+  --color-accent-foreground: #ececef;
+  --color-primary: #e8e4dc;
+  --color-primary-foreground: #121214;
+  --color-secondary: #22222a;
+  --color-secondary-foreground: #ececef;
+  --color-destructive: #c45c5c;
+  --color-ring: #6b6b7a;
+  --color-success: #5d9b78;
+  --color-new: #c4a35a;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  html {
+    overflow: hidden;
+  }
+
+  body,
+  #root {
+    overflow: hidden;
+  }
+
+  html[data-surface="popup"],
+  html[data-surface="popup"] body,
+  html[data-surface="popup"] #root {
+    width: 420px;
+    height: 560px;
+  }
+
+  button:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  button,
+  a,
+  input,
+  [role="tab"] {
+    transition:
+      transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
+      background-color 200ms cubic-bezier(0.32, 0.72, 0, 1),
+      border-color 200ms cubic-bezier(0.32, 0.72, 0, 1),
+      color 200ms cubic-bezier(0.32, 0.72, 0, 1),
+      opacity 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+}
