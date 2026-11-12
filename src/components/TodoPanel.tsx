@@ -1,29 +1,33 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { ColorDot, ColorSwatches } from '@/components/ColorSwatches'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { DEFAULT_TODO_COLOR, getThemeColor, type ThemeColorId } from '@/lib/colors'
 import { cn } from '@/lib/utils'
 import type { Todo } from '@/types'
 
 type TodoPanelProps = {
   todos: Todo[]
-  onAdd: (title: string) => void
+  onAdd: (title: string, color: ThemeColorId) => void
   onToggle: (id: string) => void
   onRemove: (id: string) => void
+  onChangeColor: (id: string, color: ThemeColorId) => void
 }
 
-export function TodoPanel({ todos, onAdd, onToggle, onRemove }: TodoPanelProps) {
+export function TodoPanel({ todos, onAdd, onToggle, onRemove, onChangeColor }: TodoPanelProps) {
   const [draft, setDraft] = useState('')
+  const [draftColor, setDraftColor] = useState<ThemeColorId>(DEFAULT_TODO_COLOR)
   const open = todos.filter((todo) => !todo.done)
   const done = todos.filter((todo) => todo.done)
 
   function submit() {
     const title = draft.trim()
     if (!title) return
-    onAdd(title)
+    onAdd(title, draftColor)
     setDraft('')
   }
 
@@ -38,20 +42,28 @@ export function TodoPanel({ todos, onAdd, onToggle, onRemove }: TodoPanelProps) 
       </div>
 
       <form
-        className="flex shrink-0 gap-2"
+        className="flex shrink-0 flex-col gap-2"
         onSubmit={(event) => {
           event.preventDefault()
           submit()
         }}
       >
-        <Input
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="Add a todo"
+        <div className="flex gap-2">
+          <Input
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder="Add a todo"
+          />
+          <Button type="submit" size="icon" aria-label="Add todo">
+            <Plus />
+          </Button>
+        </div>
+        <ColorSwatches
+          label="Todo color"
+          size="sm"
+          value={draftColor}
+          onChange={setDraftColor}
         />
-        <Button type="submit" size="icon" aria-label="Add todo">
-          <Plus />
-        </Button>
       </form>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
@@ -63,7 +75,13 @@ export function TodoPanel({ todos, onAdd, onToggle, onRemove }: TodoPanelProps) 
           ) : null}
 
           {open.map((todo) => (
-            <TodoRow key={todo.id} todo={todo} onToggle={onToggle} onRemove={onRemove} />
+            <TodoRow
+              key={todo.id}
+              todo={todo}
+              onToggle={onToggle}
+              onRemove={onRemove}
+              onChangeColor={onChangeColor}
+            />
           ))}
 
           {done.length > 0 ? (
@@ -73,7 +91,13 @@ export function TodoPanel({ todos, onAdd, onToggle, onRemove }: TodoPanelProps) 
                 Completed
               </p>
               {done.map((todo) => (
-                <TodoRow key={todo.id} todo={todo} onToggle={onToggle} onRemove={onRemove} />
+                <TodoRow
+                  key={todo.id}
+                  todo={todo}
+                  onToggle={onToggle}
+                  onRemove={onRemove}
+                  onChangeColor={onChangeColor}
+                />
               ))}
             </>
           ) : null}
@@ -87,36 +111,73 @@ function TodoRow({
   todo,
   onToggle,
   onRemove,
+  onChangeColor,
 }: {
   todo: Todo
   onToggle: (id: string) => void
   onRemove: (id: string) => void
+  onChangeColor: (id: string, color: ThemeColorId) => void
 }) {
+  const color = getThemeColor(todo.color)
+  const [showColors, setShowColors] = useState(false)
+
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-border bg-card/70 px-3 py-2.5">
-      <Checkbox
-        checked={todo.done}
-        onCheckedChange={() => onToggle(todo.id)}
-        className="mt-0.5"
-        aria-label={todo.done ? 'Mark incomplete' : 'Mark complete'}
-      />
-      <p
-        className={cn(
-          'min-w-0 flex-1 text-sm leading-snug',
-          todo.done && 'text-muted-foreground line-through',
-        )}
-      >
-        {todo.title}
-      </p>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 shrink-0"
-        onClick={() => onRemove(todo.id)}
-        aria-label="Delete todo"
-      >
-        <Trash2 className="size-3.5" />
-      </Button>
+    <div
+      className="rounded-lg border px-3 py-2.5"
+      style={{
+        borderColor: color.border,
+        background: `linear-gradient(90deg, ${color.soft} 0%, rgba(20,20,24,0.72) 55%)`,
+        borderLeftWidth: 3,
+        borderLeftColor: color.solid,
+      }}
+    >
+      <div className="flex items-start gap-3">
+        <Checkbox
+          checked={todo.done}
+          onCheckedChange={() => onToggle(todo.id)}
+          className="mt-0.5 data-[state=checked]:border-success data-[state=checked]:bg-success data-[state=checked]:text-white"
+          aria-label={todo.done ? 'Mark incomplete' : 'Mark complete'}
+        />
+        <p
+          className={cn(
+            'min-w-0 flex-1 text-sm leading-snug',
+            todo.done && 'text-muted-foreground line-through',
+          )}
+        >
+          {todo.title}
+        </p>
+        <button
+          type="button"
+          className="mt-0.5 rounded-full p-0.5"
+          title="Change color"
+          aria-label="Change todo color"
+          onClick={() => setShowColors((open) => !open)}
+        >
+          <ColorDot colorId={todo.color} className="h-3 w-3" />
+        </button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0"
+          onClick={() => onRemove(todo.id)}
+          aria-label="Delete todo"
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
+      </div>
+      {showColors ? (
+        <div className="mt-2 pl-7">
+          <ColorSwatches
+            label=""
+            size="sm"
+            value={todo.color}
+            onChange={(next) => {
+              onChangeColor(todo.id, next)
+              setShowColors(false)
+            }}
+          />
+        </div>
+      ) : null}
     </div>
   )
 }

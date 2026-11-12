@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { ColorDot, ColorSwatches } from '@/components/ColorSwatches'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -9,20 +10,22 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { PRESETS } from '@/presets'
+import { DEFAULT_PROVIDER_COLOR, getThemeColor, type ThemeColorId } from '@/lib/colors'
 import { normalizeUrl } from '@/lib/utils'
+import { PRESETS } from '@/presets'
 import type { Provider } from '@/types'
 
 type AddSourceDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   providers: Provider[]
-  onAdd: (input: { name: string; url: string; presetId?: string }) => void
+  onAdd: (input: { name: string; url: string; presetId?: string; color: ThemeColorId }) => void
 }
 
 export function AddSourceDialog({ open, onOpenChange, providers, onAdd }: AddSourceDialogProps) {
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
+  const [color, setColor] = useState<ThemeColorId>(DEFAULT_PROVIDER_COLOR)
   const [error, setError] = useState<string | null>(null)
 
   const usedUrls = useMemo(
@@ -37,6 +40,7 @@ export function AddSourceDialog({ open, onOpenChange, providers, onAdd }: AddSou
   function reset() {
     setName('')
     setUrl('')
+    setColor(DEFAULT_PROVIDER_COLOR)
     setError(null)
   }
 
@@ -48,7 +52,6 @@ export function AddSourceDialog({ open, onOpenChange, providers, onAdd }: AddSou
       return
     }
     try {
-      // Validate URL shape.
       new URL(trimmedUrl)
     } catch {
       setError('Enter a valid URL including https://')
@@ -58,7 +61,7 @@ export function AddSourceDialog({ open, onOpenChange, providers, onAdd }: AddSou
       setError('That URL is already tracked.')
       return
     }
-    onAdd({ name: trimmedName, url: trimmedUrl })
+    onAdd({ name: trimmedName, url: trimmedUrl, color })
     reset()
     onOpenChange(false)
   }
@@ -67,7 +70,12 @@ export function AddSourceDialog({ open, onOpenChange, providers, onAdd }: AddSou
     const preset = PRESETS.find((item) => item.id === presetId)
     if (!preset) return
     if (usedUrls.has(normalizeUrl(preset.url)) || usedPresetIds.has(preset.id)) return
-    onAdd({ name: preset.name, url: preset.url, presetId: preset.id })
+    onAdd({
+      name: preset.name,
+      url: preset.url,
+      presetId: preset.id,
+      color: preset.color,
+    })
   }
 
   return (
@@ -82,7 +90,7 @@ export function AddSourceDialog({ open, onOpenChange, providers, onAdd }: AddSou
         <DialogHeader>
           <DialogTitle>Add changelog source</DialogTitle>
           <DialogDescription>
-            Pick a preset or paste any product changelog URL. Sources stay local in this browser.
+            Pick a preset or paste any product changelog URL. Each source gets its own color theme.
           </DialogDescription>
         </DialogHeader>
 
@@ -94,15 +102,24 @@ export function AddSourceDialog({ open, onOpenChange, providers, onAdd }: AddSou
             {PRESETS.map((preset) => {
               const added =
                 usedPresetIds.has(preset.id) || usedUrls.has(normalizeUrl(preset.url))
+              const theme = getThemeColor(preset.color)
               return (
                 <button
                   key={preset.id}
                   type="button"
                   disabled={added}
                   onClick={() => handleAddPreset(preset.id)}
-                  className="rounded-md border border-border bg-muted/40 px-3 py-2 text-left hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-md border px-3 py-2 text-left hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{
+                    borderColor: theme.border,
+                    backgroundColor: theme.soft,
+                    boxShadow: `inset 3px 0 0 ${theme.solid}`,
+                  }}
                 >
-                  <div className="text-sm font-medium">{preset.name}</div>
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <ColorDot colorId={preset.color} className="h-2.5 w-2.5" />
+                    {preset.name}
+                  </div>
                   <div className="truncate text-xs text-muted-foreground">{preset.url}</div>
                 </button>
               )
@@ -124,6 +141,7 @@ export function AddSourceDialog({ open, onOpenChange, providers, onAdd }: AddSou
             value={url}
             onChange={(event) => setUrl(event.target.value)}
           />
+          <ColorSwatches value={color} onChange={setColor} label="Theme color" />
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
         </div>
 

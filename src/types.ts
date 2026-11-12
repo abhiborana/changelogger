@@ -1,3 +1,5 @@
+import type { ThemeColorId } from '@/lib/colors'
+
 export type ChangelogEntry = {
   id: string
   title: string
@@ -13,6 +15,7 @@ export type Provider = {
   id: string
   name: string
   url: string
+  color: ThemeColorId
   presetId?: string
   lastFetchedAt: number | null
   lastError: string | null
@@ -24,6 +27,7 @@ export type Todo = {
   id: string
   title: string
   done: boolean
+  color: ThemeColorId
   createdAt: number
 }
 

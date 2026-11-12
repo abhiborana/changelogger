@@ -1,3 +1,9 @@
+import {
+  DEFAULT_TODO_COLOR,
+  isThemeColorId,
+  type ThemeColorId,
+} from '@/lib/colors'
+import { normalizeProvider } from '@/lib/providers'
 import type { AppState, Provider, Todo } from '@/types'
 
 const STORAGE_KEY = 'changelogger_state'
@@ -11,12 +17,34 @@ function isExtensionStorageAvailable() {
   return typeof chrome !== 'undefined' && Boolean(chrome.storage?.local)
 }
 
+function normalizeTodo(todo: Todo, index: number): Todo {
+  const fallbackCycle: ThemeColorId[] = [
+    'teal',
+    'coral',
+    'amber',
+    'sky',
+    'lime',
+    'violet',
+    'rose',
+  ]
+  return {
+    ...todo,
+    color: isThemeColorId(todo.color) ? todo.color : fallbackCycle[index % fallbackCycle.length] ?? DEFAULT_TODO_COLOR,
+  }
+}
+
 export async function loadState(): Promise<AppState> {
   if (!isExtensionStorageAvailable()) {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return { ...EMPTY_STATE }
     try {
-      return { ...EMPTY_STATE, ...(JSON.parse(raw) as AppState) }
+      const parsed = { ...EMPTY_STATE, ...(JSON.parse(raw) as AppState) }
+      return {
+        providers: (parsed.providers ?? []).map((provider, index) =>
+          normalizeProvider(provider, index),
+        ),
+        todos: (parsed.todos ?? []).map((todo, index) => normalizeTodo(todo, index)),
+      }
     } catch {
       return { ...EMPTY_STATE }
     }
@@ -26,8 +54,12 @@ export async function loadState(): Promise<AppState> {
   const value = result[STORAGE_KEY] as AppState | undefined
   if (!value) return { ...EMPTY_STATE }
   return {
-    providers: Array.isArray(value.providers) ? value.providers : [],
-    todos: Array.isArray(value.todos) ? value.todos : [],
+    providers: (Array.isArray(value.providers) ? value.providers : []).map((provider, index) =>
+      normalizeProvider(provider, index),
+    ),
+    todos: (Array.isArray(value.todos) ? value.todos : []).map((todo, index) =>
+      normalizeTodo(todo, index),
+    ),
   }
 }
 

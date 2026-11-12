@@ -1,3 +1,10 @@
+import {
+  colorForPreset,
+  DEFAULT_PROVIDER_COLOR,
+  isThemeColorId,
+  nextColorForIndex,
+  type ThemeColorId,
+} from '@/lib/colors'
 import { fetchPage } from '@/lib/fetch-page'
 import { discoverFeedUrl, parseChangelog } from '@/lib/parse-changelog'
 import { createId, normalizeUrl } from '@/lib/utils'
@@ -7,15 +14,30 @@ export function createProvider(input: {
   name: string
   url: string
   presetId?: string
+  color?: ThemeColorId
+  existingCount?: number
 }): Provider {
   return {
     id: createId('provider'),
     name: input.name.trim(),
     url: normalizeUrl(input.url),
+    color:
+      input.color ??
+      (input.presetId ? colorForPreset(input.presetId) : nextColorForIndex(input.existingCount ?? 0)) ??
+      DEFAULT_PROVIDER_COLOR,
     presetId: input.presetId,
     lastFetchedAt: null,
     lastError: null,
     entries: [],
+  }
+}
+
+export function normalizeProvider(provider: Provider, index = 0): Provider {
+  return {
+    ...provider,
+    color: isThemeColorId(provider.color)
+      ? provider.color
+      : colorForPreset(provider.presetId) || nextColorForIndex(index),
   }
 }
 

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
+import type { ThemeColorId } from '@/lib/colors'
 import { createProvider, refreshProvider } from '@/lib/providers'
 import { createId, normalizeUrl } from '@/lib/utils'
 import { loadState, saveProviders, saveTodos } from '@/storage'
@@ -43,17 +44,32 @@ export default function App() {
 
   const openTodoCount = useMemo(() => todos.filter((todo) => !todo.done).length, [todos])
 
-  async function handleAddSource(input: { name: string; url: string; presetId?: string }) {
+  async function handleAddSource(input: {
+    name: string
+    url: string
+    presetId?: string
+    color: ThemeColorId
+  }) {
     const normalized = normalizeUrl(input.url)
     if (providers.some((provider) => normalizeUrl(provider.url) === normalized)) return
 
-    const provider = createProvider(input)
+    const provider = createProvider({
+      ...input,
+      existingCount: providers.length,
+    })
     const pending = { ...provider, fetching: true }
     setSelectedProviderId(provider.id)
     setProviders((prev) => [...prev, pending])
 
     const refreshed = await refreshProvider(provider)
     const next = [...providers.filter((item) => item.id !== provider.id), refreshed]
+    await persistProviders(next)
+  }
+
+  async function handleChangeProviderColor(id: string, color: ThemeColorId) {
+    const next = providers.map((provider) =>
+      provider.id === id ? { ...provider, color } : provider,
+    )
     await persistProviders(next)
   }
 
@@ -91,12 +107,13 @@ export default function App() {
     await persistProviders(next)
   }
 
-  async function handleAddTodo(title: string) {
+  async function handleAddTodo(title: string, color: ThemeColorId) {
     const next: Todo[] = [
       {
         id: createId('todo'),
         title,
         done: false,
+        color,
         createdAt: Date.now(),
       },
       ...todos,
@@ -108,6 +125,11 @@ export default function App() {
     const next = todos.map((todo) =>
       todo.id === id ? { ...todo, done: !todo.done } : todo,
     )
+    await persistTodos(next)
+  }
+
+  async function handleChangeTodoColor(id: string, color: ThemeColorId) {
+    const next = todos.map((todo) => (todo.id === id ? { ...todo, color } : todo))
     await persistTodos(next)
   }
 
@@ -130,6 +152,7 @@ export default function App() {
       onSelectProvider={setSelectedProviderId}
       onRefreshProvider={(id) => void handleRefreshProvider(id)}
       onRemoveProvider={(id) => void handleRemoveProvider(id)}
+      onChangeProviderColor={(id, color) => void handleChangeProviderColor(id, color)}
       onAdd={() => setAddOpen(true)}
     />
   )
@@ -137,9 +160,10 @@ export default function App() {
   const todoPanel = (
     <TodoPanel
       todos={todos}
-      onAdd={(title) => void handleAddTodo(title)}
+      onAdd={(title, color) => void handleAddTodo(title, color)}
       onToggle={(id) => void handleToggleTodo(id)}
       onRemove={(id) => void handleRemoveTodo(id)}
+      onChangeColor={(id, color) => void handleChangeTodoColor(id, color)}
     />
   )
 
