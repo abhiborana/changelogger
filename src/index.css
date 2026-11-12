@@ -57,6 +57,17 @@
     height: 560px;
   }
 
+  .overflow-y-auto,
+  .overflow-auto {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar,
+  .overflow-auto::-webkit-scrollbar {
+    display: none;
+  }
+
   button:active:not(:disabled) {
     transform: scale(0.98);
   }
